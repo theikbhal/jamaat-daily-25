@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Jamaat – 25 People Tracker</title>
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .date-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="date"] {
+            flex: 1;
+            padding: 8px;
+        }
+
+        .summary {
+            background: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .person {
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .person-header {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .person-header input[type="text"] {
+            flex: 1;
+            padding: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            margin-top: 6px;
+            padding: 6px;
+            font-size: 0.85rem;
+        }
+
+        .day-note {
+            margin-top: 15px;
+        }
+
+        .day-note textarea {
+            min-height: 80px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 0.75rem;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🕌 Daily Jamaat – 25 People</h1>
+
+    <div class="date-bar">
+        <input type="date" id="dateInput" />
+    </div>
+
+    <div class="summary" id="summary">Met: 0 / 25</div>
+
+    <div id="people"></div>
+
+    <div class="day-note">
+        <h3>📘 Day Notes (Bayan / Gasht / Reflection)</h3>
+        <textarea id="dayNote" placeholder="What happened today..."></textarea>
+    </div>
+
+    <div class="footer">
+        Offline • Auto Save • Jamaat Workflow
+    </div>
+
+    <script>
+        const peopleContainer = document.getElementById("people");
+        const dateInput = document.getElementById("dateInput");
+        const summary = document.getElementById("summary");
+        const dayNote = document.getElementById("dayNote");
+
+        function today() {
+            return new Date().toISOString().split("T")[0];
+        }
+
+        dateInput.value = today();
+
+        function loadDay(date) {
+            peopleContainer.innerHTML = "";
+            const data = JSON.parse(localStorage.getItem(date)) || {
+                people: Array(25).fill(null).map(() => ({
+                    name: "",
+                    phone: "",
+                    note: "",
+                    met: false
+                })),
+                dayNote: ""
+            };
+
+            data.people.forEach((p, i) => {
+                const div = document.createElement("div");
+                div.className = "person";
+                div.innerHTML = `
+      <div class="person-header">
+        <input type="checkbox" ${p.met ? "checked" : ""}>
+        <input type="text" placeholder="Name" value="${p.name}">
+        <input type="text" placeholder="Phone / ID" value="${p.phone}">
+      </div>
+      <textarea placeholder="What discussed / learned / reminder">${p.note}</textarea>
+    `;
+                const [chk, name, phone] = div.querySelectorAll("input");
+                const note = div.querySelector("textarea");
+
+                function save() {
+                    p.met = chk.checked;
+                    p.name = name.value;
+                    p.phone = phone.value;
+                    p.note = note.value;
+                    saveDay(date, data);
+                }
+
+                chk.onchange = save;
+                name.oninput = save;
+                phone.oninput = save;
+                note.oninput = save;
+
+                peopleContainer.appendChild(div);
+            });
+
+            dayNote.value = data.dayNote;
+            dayNote.oninput = () => {
+                data.dayNote = dayNote.value;
+                saveDay(date, data);
+            };
+
+            updateSummary(data);
+        }
+
+        function saveDay(date, data) {
+            localStorage.setItem(date, JSON.stringify(data));
+            updateSummary(data);
+        }
+
+        function updateSummary(data) {
+            const met = data.people.filter(p => p.met).length;
+            summary.textContent = `Met: ${met} / 25`;
+        }
+
+        dateInput.onchange = () => loadDay(dateInput.value);
+
+        loadDay(dateInput.value);
+    </script>
+
+</body>
+
+</html>
